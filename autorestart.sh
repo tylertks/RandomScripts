@@ -4,7 +4,7 @@ go='tmux send-keys -t mineserver'
 today=$(date +"%m-%d-%Y")
 timeleft=10
 worldLoc="~/Stuff/ScrocheCraft/world"
-backupLoc="~/Stuff/ScrocheCraft/world/world-backups/world"
+backupLoc="~/Stuff/ScrocheCraft/world-backups/world"
 $go "say SERVER IS RESTARTING IN 5 MINUTES" C-m
 sleep 3m
 $go "say SERVER IS RESTARTING IN 2 MINUTES" C-m
@@ -24,6 +24,6 @@ $go "say RESTARTING" C-m
 sleep 1s
 $go "stop" C-m
 sleep 30s
-$go "cp -R ~/Stuff/ScrocheCraft/world/ ~/Stuff/ScrocheCraft/world/world-backups/world" C-m
-$go "mv ~/Stuff/ScrocheCraft/world/world-backups/world ~Stuff/ScrocheCraft/world-backups/world_$today" C-m
+$go "cp -rv ~/Stuff/ScrocheCraft/world/ ~/Stuff/ScrocheCraft/world-backups/world" C-m
+$go "mv ~/Stuff/ScrocheCraft/world-backups/world ~Stuff/ScrocheCraft/world-backups/world_$today" C-m
 $go "cd ~/Stuff/ScrocheCraft/ && ./launch.sh" C-m
