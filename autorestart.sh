@@ -18,6 +18,7 @@ sleep 10s
 while [$ -gt 0]
 do
 	$go "say $timeleft SECONDS" C-m
+	a=`expr $timeleft - 1`
 done
 $go "say RESTARTING" C-m
 sleep 1s
