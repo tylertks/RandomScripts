@@ -4,6 +4,7 @@ today=$(date +"%m-%d-%Y")
 timeleft=10
 worldLoc="~/Stuff/ScrocheCraft/world"
 backupLoc="~/Stuff/ScrocheCraft/world-backups/world"
+
 #Server Restart Countdown
 $go "say SERVER IS RESTARTING IN 5 MINUTES" C-m
 sleep 3m
@@ -23,13 +24,18 @@ do
 done
 $go "say RESTARTING..." C-m
 sleep 1s
+
 #Stop the server
 $go "stop" C-m
+
 #wait to ensure the server is completely shutdown
 sleep 30s
+
 #Copy the world into the backup directory
 $go "cp -rv $worldLoc $backupLoc" C-m
+
 #CD into the backup directory, and change the name of the backup to include the date
 $go "cd ~/Stuff/ScrocheCraft/world-backups && mv world world_$today" C-m
+
 #CD into the server directory and relaunch the server
 $go "cd ~/Stuff/ScrocheCraft/ && ./launch.sh" C-m
