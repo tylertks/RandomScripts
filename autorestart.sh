@@ -7,9 +7,9 @@ backupLoc="~/Stuff/ScrocheCraft/world-backups/world"
 
 #Server Restart Countdown
 $go "say SERVER IS RESTARTING IN 5 MINUTES" C-m
-sleep 3m
+sleep 180s
 $go "say SERVER IS RESTARTING IN 2 MINUTES" C-m
-sleep 1m
+sleep 60s
 $go "say SERVER IS RESTARTING IN 1 MINUTE" C-m
 sleep 30s
 $go "say SERVER IS RESTARTING IN 30 SECONDS" C-m
