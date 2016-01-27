@@ -32,10 +32,10 @@ $go "stop" C-m
 sleep 30s
 
 #Copy the world into the backup directory
-$go "cp -rv $worldLoc $backupLoc" C-m
+cp -rv $worldLoc $backupLoc
 
 #CD into the backup directory, and change the name of the backup to include the date
-$go "cd ~/Stuff/ScrocheCraft/world-backups && mv world world\ $today" C-m
+cd ~/Stuff/ScrocheCraft/world-backups && mv world world\ $today
 
 #CD into the server directory and relaunch the server
 $go "cd ~/Stuff/ScrocheCraft/ && ./launch.sh" C-m
