@@ -24,6 +24,6 @@ $go "say RESTARTING" C-m
 sleep 1s
 $go "stop" C-m
 sleep 30s
-$go "cp -rv ~/Stuff/ScrocheCraft/world/ ~/Stuff/ScrocheCraft/world-backups/world" C-m
-$go "mv ~/Stuff/ScrocheCraft/world-backups/world ~Stuff/ScrocheCraft/world-backups/world_$today" C-m
+$go "cp -rv $worldLoc $backupLoc" C-m
+$go "cd $backupLoc && mv world world_$today" C-m
 $go "cd ~/Stuff/ScrocheCraft/ && ./launch.sh" C-m
