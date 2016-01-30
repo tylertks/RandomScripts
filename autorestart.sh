@@ -1,9 +1,9 @@
 #Restart Script
 go='tmux send-keys -t mineserver'
-today=$(date +"%m-%d-%Y")
+today=$(date +"%Y %m %d %T")
 timeleft=10
-worldLoc="~/Stuff/ScrocheCraft/world"
-backupLoc="~/Stuff/ScrocheCraft/world-backups/world"
+worldLoc="~/Stuff/ScrocheCraft/world/"
+backupLoc="~/Stuff/ScrocheCraft/world_backups/"
 
 #Server Restart Countdown
 $go "say SERVER IS RESTARTING IN 5 MINUTES" C-m
@@ -35,7 +35,7 @@ sleep 30s
 cp -rv $worldLoc $backupLoc
 
 #CD into the backup directory, and change the name of the backup to include the date
-cd ~/Stuff/ScrocheCraft/world-backups && mv world "world $today"
+cd ~/Stuff/ScrocheCraft/world_backups && mv world "world $today"
 
 #CD into the server directory and relaunch the server
 $go "cd ~/Stuff/ScrocheCraft/ && ./launch.sh" C-m
