@@ -32,7 +32,7 @@ $go "stop" C-m
 sleep 30s
 
 #Copy the world into the backup directory
-cp -rv $worldLoc $backupLoc
+cp -R $worldLoc $backupLoc
 
 #CD into the backup directory, and change the name of the backup to include the date
 cd $backupLoc && mv world "world $today"
