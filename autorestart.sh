@@ -2,8 +2,8 @@
 go='tmux send-keys -t mineserver'
 today=$(date +"%Y %m %d %T")
 timeleft=10
-worldLoc="~/Stuff/ScrocheCraft/world/"
-backupLoc="~/Stuff/ScrocheCraft/world_backups/"
+worldLoc="/home/KhamServer/Stuff/ScrocheCraft/world/"
+backupLoc="/home/KhamServer/Stuff/ScrocheCraft/world_backups/"
 
 #Server Restart Countdown
 $go "say SERVER IS RESTARTING IN 5 MINUTES" C-m
