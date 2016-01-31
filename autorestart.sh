@@ -29,7 +29,7 @@ sleep 1s
 $go "stop" C-m
 
 #wait to ensure the server is completely shutdown
-sleep 30s
+sleep 60s
 
 #Copy the world into the backup directory
 cp -R $worldLoc $backupLoc
