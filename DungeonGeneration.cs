@@ -63,15 +63,6 @@ public class CustomGen : MonoBehaviour {
 }
 
 [System.Serializable]
-public class Rm
-{
-	public int startX;
-	public int startY;
-	public int width;
-	public int height;
-}
-
-[System.Serializable]
 public class Grid
 {
 	[Range(1,10000)]
@@ -79,8 +70,9 @@ public class Grid
 	[Range(1,10000)]
 	public int height;
 	int[,] squares;
-	Rect[] rooms;
+	List<Rect> rooms = new List<Rect>();
 	int r=0;
+	public bool GenerateLights = false;
 	public void Initialize(int a)
 	{
 		squares = new int[width, height];
@@ -90,7 +82,7 @@ public class Grid
 				//Debug.Log (i + ", " + j + "=" + squares [i, j]);
 			}
 		}
-		rooms=new Rect[a];
+		//rooms=new Rect[a];
 		//Debug.Log (squares + "\n" + rooms[0]);
 	}
 	public void NewRoom(int w, int h, int x = 1, int y = 1, bool hallway=false)
@@ -103,16 +95,16 @@ public class Grid
 			y = Mathf.RoundToInt (Random.Range (1, height - h));
 			//Debug.Log ("y= " + y + ", height = " + h);
 		}
-		if (!hallway) {
-			rooms [r] = new Rect (x,y,w,h);
-			//Debug.Log (rooms [r]);
-			r++;
-		}
+			//rooms [r] = new Rect (x,y,w,h);
+		Rect rec = new Rect(x,y,w,h);
+		rooms.Add(rec);
+		//Debug.Log (rooms [r]);
+		r++;
 		for (int i = x; i <= x+w; i++) {
 			for (int j = y; j <= y+h; j++) {
 				if (i == x || i == x + w || j == y || j == y + h) {
 					//Debug.Log ("i =" + i + ", j =" + j);
-					if(squares[i,j]==0)
+					if(squares[i,j]<1)
 					squares [i, j]++;
 					//Debug.Log (i + ", " + j + " = " + squares [i, j]);
 				} else {
@@ -138,7 +130,7 @@ public class Grid
 	{
 		for (int i = x; i <= x+w; i++) {
 			for (int j = y; j <= y+h; j++) {
-				if (squares [i, j] >4) {
+				if (squares [i, j] >2) {
 					//Debug.Log ("connected");
 					return true;
 					break;
@@ -157,10 +149,10 @@ public class Grid
 		Debug.Log (center2 + ", is the center of " + rooms [r - 2]);
 		int height = (int)(center2.y - center1.y);
 		int width = (int)(center2.x - center1.x);
-		Debug.Log ("height: " + height + ", width: " + width + ", Projected Distance: " + Mathf.Sqrt ((height * height) + (width * width)) + ", Actual Distance: " + Vector2.Distance (center1, center2));
+		//Debug.Log ("height: " + height + ", width: " + width + ", Projected Distance: " + Mathf.Sqrt ((height * height) + (width * width)) + ", Actual Distance: " + Vector2.Distance (center1, center2));
 		//Create Vertical Hallway
 		//Create Horizontal Hallway
-		Hhallway(center1,center2,width, height);
+		Hhallway (center1, center2, width, height);
 	}
 	Vector2 GetCenter(Rect j)
 	{
@@ -168,34 +160,56 @@ public class Grid
 		int y = Mathf.RoundToInt(j.y + (j.height / 2));
 		return new Vector2 (x, y);
 	}
-	void Hhallway(Vector2 a, Vector2 b, int width, int height)
+	void Hhallway(Vector2 a, Vector2 b, int w, int h)
 	{
-		Vector2 newV = Vector2.zero;
-		if (width > 0) {
-			Debug.Log("Creating Hallway at: " + new Rect(a.x, a.y, width, 5));
-			NewRoom (width+2, 5, (int)a.x, (int)a.y, true);
-			newV = new Vector2 (a.x + width + 2, a.y);
-			Vhallway (newV, b, height);
+		if (Mathf.Abs (w) > 3) {
+			Vector2 newV = Vector2.zero;
+			if (w > 0) {
+				int y = CheckLength ((int)a.y, 2, height);
+				w = CheckLength ((int)a.x, w, width);
+				Debug.Log ("Creating Hallway at: " + new Rect (a.x, a.y, w, y));
+				NewRoom (w, y, (int)a.x, (int)a.y, true);
+				newV = new Vector2 (a.x + w-3, a.y);
+				Vhallway (newV, b, h);
+			} else {
+				w = -w;
+				w = CheckLength ((int)b.x, w, width);
+				int y = CheckLength ((int)b.y, 2, height);
+				Debug.Log ("Creating Hallway at: " + new Rect (b.x, b.y, w, y));
+				NewRoom (w, y, (int)b.x, (int)b.y, true);
+				newV = new Vector2 (b.x + w-3, b.y);
+				Vhallway (newV, a, -h);
+			}
 		} else {
-			width = -width;
-			Debug.Log("Creating Hallway at: " + new Rect(b.x, b.y, width, 5));
-			NewRoom (width+2, 5, (int)b.x, (int)b.y, true);
-			newV = new Vector2 (b.x + width + 2, b.y);
-			Vhallway (newV, a, -height);
+			Vhallway (a, b, h);
 		}
-
+	}
+	void Vhallway(Vector2 a, Vector2 b, int h)
+	{
+		if (Mathf.Abs (h) > 3) {
+			if (h > 0) {
+				h = CheckLength ((int)a.y, h, height);
+				int w = CheckLength ((int)a.x, 2, width);
+				Debug.Log ("Creating Hallway at: " + new Rect (a.x, a.y, w, h));
+				NewRoom (w, h, (int)a.x, (int)a.y, true);
+			} else {
+				h = -h;
+				h = CheckLength ((int)b.y, h, height);
+				int w = CheckLength ((int)b.x, 2, width);
+				Debug.Log ("Creating Hallway at: " + new Rect (b.x, b.y, w, h));
+				NewRoom (w, h, (int)b.x, (int)b.y, true);
+			}
+		}
 
 	}
-	void Vhallway(Vector2 a, Vector2 b, int height)
+	int CheckLength(int x, int w, int l)
 	{
-		if (height > 0) {
-			Debug.Log ("Creating Hallway at: " + new Rect (a.x, a.y, 5, height));
-			NewRoom(5, height+2, (int)a.x, (int)a.y, true);
+		int i = 0;
+		if (l-(x + w) > 3) {
+			i = w + 3;
 		} else {
-			height = -height;
-			Debug.Log ("Creating Hallway at: " + new Rect (b.x, b.y, 5, height));
-			NewRoom(5, height+2, (int)b.x, (int)b.y, true);
+			i = w + (l - (x + w));
 		}
-
+		return i;
 	}
 }
