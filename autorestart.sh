@@ -15,8 +15,8 @@
 # |------------------------------------- min (0 - 59)
 #
 # e.g.
-# 15 * * * * ~./brofist
-# Would run the brofist command once an hour on the 15th minute of every hour
+# 0 5 * * * /directory/to/autorestart.sh
+# Would run the restart script every day at 5am
 
 go='tmux send-keys -t mineserver'
 today=$(date +"%Y-%m-%d %T")
@@ -27,6 +27,7 @@ serverDir=""
 #Name of the world and backkup folders. These do not need to be changed.
 worldLoc="world"
 backupLoc="world-backups"
+serverStart="./launch.sh"
 
 #Server Restart Countdown
 $go "say SERVER IS RESTARTING IN 5 MINUTES" C-m
@@ -62,4 +63,4 @@ cp -R $worldLoc $backupLoc
 cd $backupLoc && mv world "world $today"
 
 #CD into the server directory and relaunch the server
-$go "cd $serverDir && ./launch.sh" C-m
+$go "cd $serverDir && $serverStart" C-m
