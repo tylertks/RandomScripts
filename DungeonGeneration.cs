@@ -3,13 +3,20 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class DungeonGeneration : MonoBehaviour {
-	public Grid g;
+	Grid g = new Grid();
+	[Range(1,1000)]
+	public int gridWidth;
+	[Range(1,1000)]
+	public int gridHeight;
+	public bool overlappingRooms; 
 	int tryCount=0;
 	public GameObject wall;
 	[Range(1,500)]
 	public int rooms;
-	[Range(1,100)]
+	[Range(1,250)]
 	public int minRoomSize;
+	[Range(100,250000)]
+	public int maxRoomSize;
 	[Range(1,500)]
 	public int maxWidth;
 	[Range(1,500)]
@@ -33,7 +40,7 @@ public class DungeonGeneration : MonoBehaviour {
 	// Use this for initialization
 	void Start () 
 	{
-		g.Initialize (rooms);
+		g.Initialize (rooms,gridWidth,gridHeight,!overlappingRooms);
 		for (int i = 0; i < rooms; i++) {
 			CreateRoom ();
 		}
@@ -56,22 +63,32 @@ public class DungeonGeneration : MonoBehaviour {
 	void CreateRoom()
 	{
 		tryCount++;
-		if (tryCount < 10) {
-			int w = Mathf.RoundToInt(Random.Range (minWidth, maxWidth));
-			int h = Mathf.RoundToInt (Random.Range (minHeight, maxHeight));
-			if (w * h > minRoomSize) {
+		if (tryCount < 25) {
+			int w = Mathf.RoundToInt (Random.Range (minWidth, maxWidth));
+			int h = 0;
+			if (minHeight < maxRoomSize/w && maxRoomSize / w < maxHeight) {
+				float height = maxRoomSize / w;
+				h = Mathf.RoundToInt (Random.Range (minHeight, height));
+			} else {
+				h = Mathf.RoundToInt (Random.Range (minHeight, maxHeight));
+			}
+			if (w * h >= minRoomSize && w * h <= maxRoomSize) {
 				tryCount = 0;
-				g.NewRoom (w,h);
+				g.NewRoom (w, h);
 			} else {
 				CreateRoom ();
+				return;
 			}
+		} else {
+			tryCount = 0;
+			Debug.Log ("exceeded maximum tries, skipping room");
 		}
 	}
 	void Wall()
 	{
 		float y = wall.GetComponent<Transform> ().localScale.y / 2;
-		for (int i = 0; i < g.width; i++) {
-			for (int j = 0; j < g.height; j++) {
+		for (int i = 0; i < gridWidth; i++) {
+			for (int j = 0; j < gridHeight; j++) {
 				if (g.check(i,j)) {
 					Instantiate (wall, new Vector3 (i, y, j), Quaternion.identity);
 				}
@@ -181,15 +198,20 @@ public class Spawn
 public class Grid
 {
 	[Range(1,1000)]
-	public int width;
+	int width;
 	[Range(1,1000)]
-	public int height;
-	public bool squareRooms;
+	int height;
+	public bool squareRooms = false;
 	int[,] squares;
 	List<Rect> rooms = new List<Rect>();
 	int r=0;
-	public void Initialize(int a)
+	int trySq = 0;
+	public void Initialize(int a, int w, int h, bool b)
 	{
+		Debug.Log (string.Format("Initializing level area {0} x {1}, non-overlapping rooms = {2}",w, h, b));
+		width = w;
+		height = h;
+		squareRooms = b;
 		squares = new int[width, height];
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
@@ -212,9 +234,20 @@ public class Grid
 		}
 			//rooms [r] = new Rect (x,y,w,h);
 		if (squareRooms && !hallway) {
-			if (!CheckSq (x, y, w, h)) {
-				Debug.Log ("overlapping: moving to next room");
+			trySq++;
+			if (trySq > 10) {
+				Debug.Log (w + "x" + h + " Room overlapping: moving to next room");
+				trySq = 0;
 				return;
+			} else {
+				if (!CheckSq (x, y, w, h)) {
+					Debug.Log ("try number "+trySq+", "+w+"x"+h+" Room overlapping: trying again");
+					NewRoom (w, h);
+					return;
+				} else {
+					Debug.Log ("room not overlapping, building room");
+					trySq = 0;
+				}
 			}
 		}
 		Rect rec = new Rect(x,y,w,h);
@@ -266,12 +299,10 @@ public class Grid
 	}
 	public bool CheckSq(int x, int y, int w, int h)
 	{
-		if (squareRooms) {
-			for (int i = x; i <= x + w; i++) {
-				for (int j = y; j <= y + h; j++) {
-					if (squares [i, j] > 0) {
-						return false;
-					}
+		for (int i = x; i <= x + w; i++) {
+			for (int j = y; j <= y + h; j++) {
+				if (squares [i, j] > 0) {
+					return false;
 				}
 			}
 		}
@@ -282,8 +313,14 @@ public class Grid
 		//Debug.Log("Connecting rooms: " + (r-1) + " and " + (r-2));
 		Vector2 center1 = GetCenter (rooms [r-1]);
 		Debug.Log (center1 + ", is the center of " + rooms [r - 1]);
-		Vector2 center2 = GetCenter (rooms [r - 2]);
-		Debug.Log (center2 + ", is the center of " + rooms [r - 2]);
+		Vector2 center2 = Vector2.zero;
+		if (squareRooms && r>3) {
+			center2 = GetCenter (rooms [r - 4]);
+			Debug.Log (center2 + ", is the center of " + rooms [r - 4]);
+		} else {
+			center2 = GetCenter (rooms [r - 2]);
+			Debug.Log (center2 + ", is the center of " + rooms [r - 2]);
+		} 
 		int height = (int)(center2.y - center1.y);
 		int width = (int)(center2.x - center1.x);
 		//Debug.Log ("height: " + height + ", width: " + width + ", Projected Distance: " + Mathf.Sqrt ((height * height) + (width * width)) + ", Actual Distance: " + Vector2.Distance (center1, center2));
