@@ -13,17 +13,17 @@ public class DungeonGeneration : MonoBehaviour {
 	public GameObject wall;
 	[Range(1,500)]
 	public int rooms;
-	[Range(1,250)]
+	[Range(1,500)]
 	public int minRoomSize;
 	[Range(100,250000)]
 	public int maxRoomSize;
-	[Range(1,500)]
+	[Range(5,500)]
 	public int maxWidth;
-	[Range(1,500)]
+	[Range(5,500)]
 	public int maxHeight;
-	[Range(1,250)]
+	[Range(5,250)]
 	public int minWidth;
-	[Range(1,250)]
+	[Range(5,250)]
 	public int minHeight;
 	public bool AddLights = false;
 	public GameObject Light;
@@ -37,9 +37,11 @@ public class DungeonGeneration : MonoBehaviour {
 	int numRooms;
 	int room = 0;
 	List<Vector2> spawnableArea = new List<Vector2>();
+	List<Rect> doneRooms = new List<Rect> ();
 	// Use this for initialization
 	void Start () 
 	{
+		Time.timeScale = 0;
 		g.Initialize (rooms,gridWidth,gridHeight,!overlappingRooms);
 		for (int i = 0; i < rooms; i++) {
 			CreateRoom ();
@@ -153,10 +155,32 @@ public class DungeonGeneration : MonoBehaviour {
 			for (int x =(int)g.GetRoom(rm).x+1; x < g.GetRoom(rm).width+g.GetRoom(rm).x; x++) {
 				for (int y = (int)g.GetRoom(rm).y+1; y < g.GetRoom(rm).height+g.GetRoom(rm).y; y++) {
 					Vector2 coord = new Vector2 (x, y);
-					spawnableArea.Add (coord);
+					if (CheckSpawnXY (coord)) {
+						spawnableArea.Add (coord);
+					}
+				}
+			}
+			doneRooms.Add (g.GetRoom (rm));
+		}
+		Vector2 playerSpawn = g.GetCenter (g.GetRoom(0));
+		for (int i = 0; i < spawnableArea.Count; i++) {
+			for (int x = (int)playerSpawn.x-5; x <= playerSpawn.x+5; x++) {
+				for (int y = (int)playerSpawn.y-5; y <= playerSpawn.y+5; y++) {
+					if (spawnableArea [i] == new Vector2 (x, y)) {
+						spawnableArea.RemoveAt (i);
+					}
 				}
 			}
 		}
+	}
+	bool CheckSpawnXY(Vector2 v)
+	{
+		for (int i = 0; i < doneRooms.Count; i++) {
+			if (doneRooms [i].Contains (v)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	void SpawnPlayer()
 	{
@@ -184,6 +208,7 @@ public class DungeonGeneration : MonoBehaviour {
 			}
 		}
 		Debug.Log ("Finished");
+		Time.timeScale = 1;
 		yield return null;
 	}
 }
@@ -206,6 +231,7 @@ public class Grid
 	List<Rect> rooms = new List<Rect>();
 	int r=0;
 	int trySq = 0;
+	Vector2 adjust = new Vector2 (-2, -2);
 	public void Initialize(int a, int w, int h, bool b)
 	{
 		Debug.Log (string.Format("Initializing level area {0} x {1}, non-overlapping rooms = {2}",w, h, b));
@@ -320,7 +346,9 @@ public class Grid
 		} else {
 			center2 = GetCenter (rooms [r - 2]);
 			Debug.Log (center2 + ", is the center of " + rooms [r - 2]);
-		} 
+		}
+		center1 += adjust;
+		center2 += adjust;
 		int height = (int)(center2.y - center1.y);
 		int width = (int)(center2.x - center1.x);
 		//Debug.Log ("height: " + height + ", width: " + width + ", Projected Distance: " + Mathf.Sqrt ((height * height) + (width * width)) + ", Actual Distance: " + Vector2.Distance (center1, center2));
