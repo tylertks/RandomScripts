@@ -58,9 +58,9 @@ public class DungeonGeneration : MonoBehaviour {
 	// Update is called once per frame
 	void Update () 
 	{
-		if (Input.GetButton ("Jump")) {
+		/*if (Input.GetButton ("Jump")) {
 			Application.LoadLevel (0);
-		}
+		}*/
 	}
 	void CreateRoom()
 	{
@@ -201,6 +201,30 @@ public class DungeonGeneration : MonoBehaviour {
 				Instantiate (objectsToSpawn [spawn].spawnObject, new Vector3 (spawnLoc.x, 1, spawnLoc.y), Quaternion.identity);
 				objectsToSpawn [spawn].spawnNumber--;
 				spawnableArea.RemoveAt (i);
+				if (objectsToSpawn [spawn].children != null) {
+					for (int c = 0; c < objectsToSpawn[spawn].children.Length; c++) {
+						Rect r = new Rect (spawnLoc.x - objectsToSpawn[spawn].children[c].spawnWithin, spawnLoc.y - objectsToSpawn[spawn].children[c].spawnWithin, objectsToSpawn[spawn].children[c].spawnWithin*2 + 1, objectsToSpawn[spawn].children[c].spawnWithin*2 + 1);
+						List<Vector2> L = new List<Vector2> ();
+						for (int b = 0; b < spawnableArea.Count; b++) {
+							if (r.Contains (spawnableArea [b])) {
+								L.Add (spawnableArea [b]);
+							}
+						}
+						for (int d = 0; d < objectsToSpawn[spawn].children[c].spawnNumber; d++) {
+							if(L.Count>0){
+								int f = Mathf.FloorToInt(Random.Range(0,L.Count));
+								Vector2 vec = L[f];
+								Instantiate (objectsToSpawn [spawn].children [c].spawnChildObject, new Vector3 (vec.x, 1, vec.y), Quaternion.identity);
+								for (int e = 0; e < spawnableArea.Count; e++) {
+									if(vec == spawnableArea[e]){
+										spawnableArea.RemoveAt(e);
+									}
+								}
+								L.RemoveAt(f);
+							}
+						}
+					}
+				}
 				yield return  null;
 			} else {
 				spawn++;
@@ -218,8 +242,18 @@ public class Spawn
 	public GameObject spawnObject;
 	[Range(0,1000)]
 	public int spawnNumber;
+	public ChildSpawn[] children;
 }
-[System.Serializable			]
+[System.Serializable]
+public class ChildSpawn
+{
+	public GameObject spawnChildObject;
+	[Range(0,100)]
+	public int spawnNumber;
+	[Range(0,50)]
+	public float spawnWithin;
+}
+[System.Serializable]
 public class Grid
 {
 	[Range(1,1000)]
