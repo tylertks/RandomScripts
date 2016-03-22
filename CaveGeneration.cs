@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-public class CaveGen : MonoBehaviour {
+public class CaveGeneration : MonoBehaviour {
 	public int xSize;
 	public int ySize;
 
