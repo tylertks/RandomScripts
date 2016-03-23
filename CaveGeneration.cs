@@ -1,7 +1,9 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-
+//Uses the GenLights and Spawner scripts to generate lighting and objects within the map. Points of complexity is the number of nodes.
+[RequireComponent(typeof(GenLights))]
+[RequireComponent(typeof(Spawner))]
 public class CaveGeneration : MonoBehaviour {
 	public int xSize;
 	public int ySize;
@@ -16,22 +18,38 @@ public class CaveGeneration : MonoBehaviour {
 
 	public Point[,] g= null;
 	List<Node> nodes = new List<Node>();
+	List<Node> caveNodes= new List<Node>();
 	float total;
 	float filled;
 	int tries = 0;
+
+	GenLights lights;
+	public bool generateLights;
+
+	Spawner spawner;
+	public bool spawnObjects;
 
 	// Use this for initialization
 	void Start () {
 		g = new Point[xSize, ySize];
 		Debug.Log ("Creating grid " + xSize + "x" + ySize);
 		total = xSize * ySize;
+		filled = total;
 		CreateGrid ();
 		CreateNodes ();
 		CreateRooms ();
 		FillEdges ();
-		FillRandom ();
+		Carve ();
 		Debug.Log (filled / total + " filled.");
 		CreateWalls ();
+		if (generateLights) {
+			lights = gameObject.GetComponent<GenLights> ();
+			CreateRect ();
+		}
+		if (spawnObjects) {
+			spawner = gameObject.GetComponent<Spawner> ();
+			CreateSpawnableArea ();
+		}
 	}
 	
 	// Update is called once per frame
@@ -112,21 +130,29 @@ public class CaveGeneration : MonoBehaviour {
 	void FillEdges()
 	{
 		for (int i = 0; i < xSize; i++) {
-			if (g [i, 0].IsFilled ()==false) {
-				FillRoom (g [i, 0].GetNode ());
+			if (g [i, 0].GetWall ()==false) {
+				SetWall (g [i, 0].GetNode ());
 			}
-			if (g [i, ySize - 1].IsFilled () == false) {
-				FillRoom (g [i, ySize - 1].GetNode ());
+			if (g [i, ySize - 1].GetWall () == false) {
+				SetWall (g [i, ySize - 1].GetNode ());
 			}
 		}
 		for (int i = 0; i < ySize; i++) {
-			if (g [0, i].IsFilled () == false) {
-				FillRoom (g [0, i].GetNode ());
+			if (g [0, i].GetWall () == false) {
+				SetWall (g [0, i].GetNode ());
 			}
-			if (g [xSize - 1, i].IsFilled () == false) {
-				FillRoom (g [xSize - 1, i].GetNode ());
+			if (g [xSize - 1, i].GetWall () == false) {
+				SetWall (g [xSize - 1, i].GetNode ());
 			}
 		}
+	}
+	void SetWall(Node n)
+	{
+		Debug.Log ("Setting " + n.point + " to wall");
+		foreach (Vector2 v in n.room) {
+			GetPoint(v).SetWall (true);
+		}
+		GetPoint(n.point).SetWall (true);
 	}
 	void FillRoom(Node n)
 	{
@@ -152,47 +178,157 @@ public class CaveGeneration : MonoBehaviour {
 		tries++;
 		if ((filled / total) < (fillPercent / 100) && tries < 21) {
 			int i = Mathf.FloorToInt (Random.Range (0, nodes.Count));
-			if (GetPoint(nodes[i].point).IsFilled() == false && GetAdjacent(nodes[i]) <2) {
+			/*if (GetPoint(nodes[i].point).IsFilled() == false && GetAdjacent(nodes[i]) <2) {
 				FillRoom (nodes [i]);
 				tries = 0;
 				FillRandom ();
 			} else {
 				FillRandom ();
-			}
+			}*/
 		}
 		else{
 			tries = 0;
 		}
 	}
+	void Carve()
+	{
+		//Debug.Log ("Carving new room");
+		tries++;
+		if (filled / total > fillPercent / 100 && tries < 11) {
+			if (caveNodes.Count < 1) {
+				int i = Mathf.RoundToInt (Random.Range (0, nodes.Count-1));
+				if (GetPoint (nodes [i].point).GetWall () == false) {
+					tries = 0;
+					EmptyRoom (nodes [i]);
+					caveNodes.Add (nodes [i]);						
+					Carve ();
+				} else {
+					Carve ();
+				}
+			} else {
+				int i = Mathf.RoundToInt (Random.Range (0, caveNodes.Count-1));
+				Node node = GetAdjacent (caveNodes [i]);
+				if (node != caveNodes [i]) {
+					tries = 0;
+					caveNodes.Add (node);
+					EmptyRoom (node);
+				} else {
+					caveNodes.RemoveAt (i);
+				}
+				Carve ();
+			}
+		} else {
+			tries = 0;
+		}
+	}
+	void EmptyRoom(Node n)
+	{
+		//Debug.Log ("Carving room at " + n.point);
+		foreach (Vector2 v in n.room) {
+			GetPoint (v).SetFill (false);
+			filled--;
+		}
+		GetPoint (n.point).SetFill (false);
+		filled--;
+	}
 	Point GetPoint(Vector2 v)
 	{
-		return g [(int)v.x, (int)v.y];
+		Vector2 vec = v;
+		if (v.x >= xSize) {
+			vec = new Vector2 (xSize - 1, vec.y);
+		}
+		if (v.x < 0) {
+			vec = new Vector2 (0, vec.y);
+		}
+		if (v.y < 0) {
+			vec = new Vector2 (vec.x, 0);
+		}
+		if (v.y >= ySize) {
+			vec = new Vector2 (vec.x, ySize - 1);
+		}
+		return g [(int)vec.x, (int)vec.y];
 	}
-	int GetAdjacent(Node n)
+	Node GetAdjacent(Node n)
 	{
-		int a = 0;
+		//int a = 0;
 		bool wall = false;
 		List<Node> tempNode = new List<Node> ();
+		Node node = n;
 		for (int i = 0; i < n.room.Count; i++) {
 			for (int x = -1; x < 2; x++) {
-				for (int y = -1; y < 2; y++) {
-					if (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y + y)).IsFilled () == true) {
-						if (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y + y)).GetWall () == true) {
-							wall = true;
-						} else {
-							if (tempNode.Contains (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y + y)).GetNode ()) == false) {
-								tempNode.Add (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y + y)).GetNode ());
-								a++;
-							}
+				if (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y)).IsFilled () == true) {
+					if (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y)).GetWall () == false) {
+						//wall = true;
+						if (tempNode.Contains (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y)).GetNode ()) == false) {
+							tempNode.Add (GetPoint (new Vector2 (n.room [i].x + x, n.room [i].y)).GetNode ());
 						}
-					}
-				}				
+					} 
+				}
+			}
+			for (int y = -1; y < 2; y++) {
+				if (GetPoint (new Vector2 (n.room [i].x, n.room [i].y + y)).IsFilled () == true) {
+					if (GetPoint (new Vector2 (n.room [i].x, n.room [i].y + y)).GetWall () == false) {
+						//wall = true;
+						if (tempNode.Contains (GetPoint (new Vector2 (n.room [i].x, n.room [i].y + y)).GetNode ()) == false) {
+							tempNode.Add (GetPoint (new Vector2 (n.room [i].x, n.room [i].y + y)).GetNode ());
+						}
+					} 
+				}
 			}
 		}
-		if (wall == true) {
-			a++;
+		if (tempNode.Count > 0) {
+			//a++;
+			int a = Mathf.FloorToInt(Random.Range(0,tempNode.Count));
+			node = tempNode [a];
 		}
-		return a;
+		return node;
+	}
+	Rect GetRoom(Node n){
+		int left = xSize;
+		int top = ySize;
+		int right = 0;
+		int bottom = 0;
+		foreach (Vector2 v in n.room) {
+			if (v.x < left) {
+				left = (int)v.x;
+			}
+			if (v.x > right) {
+				right = (int)v.x;
+			}
+			if (v.y < top) {
+				top = (int)v.y;
+			}
+			if (v.y > bottom) {
+				bottom = (int)v.y;
+			}
+		}
+		return new Rect (left, top, right - left, bottom - top);
+	}
+	void CreateRect()
+	{
+		foreach (Node n in nodes) {
+			if (GetPoint (n.point).IsFilled () == false) {
+				lights.AddRoom (GetRoom (n));
+			}
+		}
+		lights.StartLighting ();
+	}
+	void CreateSpawnableArea()
+	{
+		bool s = false;
+		foreach (Node n in nodes) {
+			if (s == false) {
+				spawner.SetPlayerSpawn (n.point);
+				s = true;
+			}
+			if (GetPoint (n.point).IsFilled() == false) {
+				for (int i = 0; i < n.room.Count; i++) {
+					spawner.AddSpawnPoint (n.room [i]);
+				}
+				spawner.AddSpawnPoint (n.point);
+			}
+		}
+		spawner.StartSpawn ();
 	}
 }
 
@@ -203,7 +339,7 @@ public class Point{
 	//[NonSerialized]
 	private Node node;
 	//[NonSerialized]
-	private bool fill = false;
+	private bool fill = true;
 	//[NonSerialized]
 	private bool isNode = false;
 	private bool isWall = false;
@@ -216,7 +352,7 @@ public class Point{
 	public void SetNode(Node n,bool b = false)
 	{
 		if (b) {
-			Debug.Log ("Creating node at : " + xPos + ", " + yPos);
+			//Debug.Log ("Creating node at : " + xPos + ", " + yPos);
 			isNode = true;
 		}
 		node = n;
