@@ -2,8 +2,12 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
+[RequireComponent(typeof(GenLights))]
+[RequireComponent(typeof(Spawner))]
 public class DungeonGeneration : MonoBehaviour {
 	Grid g = new Grid();
+	Spawner spawner;
+	GenLights lights;
 	[Range(1,1000)]
 	public int gridWidth;
 	[Range(1,1000)]
@@ -26,12 +30,10 @@ public class DungeonGeneration : MonoBehaviour {
 	[Range(5,250)]
 	public int minHeight;
 	public bool AddLights = false;
-	public GameObject Light;
+	//public GameObject Light;
 	[Range(0,1)]
 	public float brightness;
 	public bool spawnObjects;
-	public Spawn[] objectsToSpawn;
-	public GameObject playerSpawn;
 	int spawn =0;
 	int spawnNum;
 	int numRooms;
@@ -49,18 +51,22 @@ public class DungeonGeneration : MonoBehaviour {
 		Wall ();
 		numRooms = g.NumRooms ();
 		if (AddLights) {
-			StartCoroutine (GenLights ());
-		} else {
-			StartSpawn ();
+			lights = gameObject.GetComponent<GenLights> ();
+			CreateLights ();
 		}
+		if (spawnObjects) {
+			spawner = gameObject.GetComponent<Spawner> ();
+			Spawn ();
+		}
+		Time.timeScale = 1;
 	}
 	
 	// Update is called once per frame
 	void Update () 
 	{
-		/*if (Input.GetButton ("Jump")) {
+		if (Input.GetButton ("Jump")) {
 			Application.LoadLevel (0);
-		}*/
+		}
 	}
 	void CreateRoom()
 	{
@@ -97,56 +103,17 @@ public class DungeonGeneration : MonoBehaviour {
 			}
 		}
 	}
-	IEnumerator GenLights()
+	void CreateLights()
 	{
-		while (room < numRooms) {
-			//Debug.Log ("looking for room " + room);
-			Rect Rec = g.GetRoom (room);
-			//Debug.Log ("Getting Room " + room + " of " + (g.NumRooms()-1) + ", Coordinates: " + g.GetRoom (room));
-			room++;
-			if (Rec.width > Rec.height) {
-				//Light Radius = height/2;
-				//Debug.Log ("Spawning " + Mathf.Floor(Rec.width/Rec.height) +" Lights in Room Horizontally with Radius " + Rec.height/2);
-				SpawnLightsInRoom(Rec.x,Rec.y,Rec.height,Mathf.Ceil(Rec.width/Rec.height), true);
-				yield return null;
-			} else {
-				//Debug.Log ("Spawning " + Mathf.Floor(Rec.height/Rec.width) +" Lights in Room Vertically with Radius " + Rec.width/2);
-				SpawnLightsInRoom (Rec.x, Rec.y, Rec.width, Mathf.Ceil(Rec.height / Rec.width), false);
-				yield return null;
-			}
+		for (int i = 0; i < g.NumRooms(); i++) {
+			lights.AddRoom (g.GetRoom (i));
 		}
-		StartSpawn ();
+		lights.StartLighting ();
 	}
-	void SpawnLightsInRoom(float x, float y, float diameter, float factor, bool horiz= true)
+	void Spawn()
 	{
-		GameObject temp = null;
-		for (int i = 0; i <= factor; i++) {			
-			if (horiz == true) {
-				//Debug.Log ("Creating Light #" + i + " at " + ((x - diameter / 2) + diameter * (i + 1)) + ", " + (y + diameter / 2));
-				temp = Instantiate (Light, new Vector3 ((x - diameter / 2) + diameter * (i + 1), diameter*BrightnessFactor(7)/2, y + diameter / 2), Quaternion.identity) as GameObject;
-				//Debug.Log ("Setting Brightness to " + diameter*BrightnessFactor(7));
-				temp.GetComponent<Light>().range=diameter*BrightnessFactor(7);
-			} else {
-				//Debug.Log ("Creating Light#" + i + " at" + (x + diameter / 2) + ", " + ((y - diameter / 2) + diameter * (i + 1)));
-				temp = Instantiate (Light, new Vector3 (x + diameter / 2, diameter*BrightnessFactor(7)/2, (y - diameter / 2) + diameter * (i + 1)), Quaternion.identity) as GameObject;
-				//Debug.Log ("Setting Brightness to " + diameter*BrightnessFactor(7));
-				temp.GetComponent<Light>().range=diameter*BrightnessFactor(7);
-			}
-
-		}
-	}
-	float BrightnessFactor(float max)
-	{
-		return (1 + (brightness * max));
-	}
-	void StartSpawn()
-	{
-		if (spawnObjects) {
-			spawnNum = objectsToSpawn.Length;
-			CreateSpawnableArea ();
-			//Debug.Log ("Spawnable Tiles: " + spawnableArea.Count);
-			SpawnPlayer ();
-		}
+		CreateSpawnableArea ();
+		spawner.StartSpawn ();
 	}
 	void CreateSpawnableArea()
 	{
@@ -156,22 +123,23 @@ public class DungeonGeneration : MonoBehaviour {
 				for (int y = (int)g.GetRoom(rm).y+1; y < g.GetRoom(rm).height+g.GetRoom(rm).y; y++) {
 					Vector2 coord = new Vector2 (x, y);
 					if (CheckSpawnXY (coord)) {
-						spawnableArea.Add (coord);
+						spawner.AddSpawnPoint (coord);
 					}
 				}
 			}
-			doneRooms.Add (g.GetRoom (rm));
+			//doneRooms.Add (g.GetRoom (rm));
 		}
-		Vector2 playerSpawn = g.GetCenter (g.GetRoom(0));
+		/*Vector2 playerSpawn = g.GetCenter (g.GetRoom(0));
 		for (int i = 0; i < spawnableArea.Count; i++) {
-			for (int x = (int)playerSpawn.x-5; x <= playerSpawn.x+5; x++) {
-				for (int y = (int)playerSpawn.y-5; y <= playerSpawn.y+5; y++) {
+			for (int x = (int)playerSpawn.x-spawnSafeSpace; x <= playerSpawn.x+spawnSafeSpace; x++) {
+				for (int y = (int)playerSpawn.y-spawnSafeSpace; y <= playerSpawn.y+spawnSafeSpace; y++) {
 					if (spawnableArea [i] == new Vector2 (x, y)) {
 						spawnableArea.RemoveAt (i);
 					}
 				}
 			}
-		}
+		}*/
+		spawner.SetPlayerSpawn (g.GetCenter (g.GetRoom (0)));
 	}
 	bool CheckSpawnXY(Vector2 v)
 	{
@@ -182,77 +150,8 @@ public class DungeonGeneration : MonoBehaviour {
 		}
 		return true;
 	}
-	void SpawnPlayer()
-	{
-		Vector2 pSpawn = g.GetCenter (g.GetRoom (0));
-		Instantiate (playerSpawn, new Vector3(pSpawn.x,0.5f,pSpawn.y), Quaternion.identity);
-		//Debug.Log ("Player spawned at " + pSpawn);
-		StartCoroutine (SpawnObjects ());
-	}
-	IEnumerator SpawnObjects()
-	{
-		while (spawn < spawnNum) {
-			
-			if (objectsToSpawn [spawn].spawnNumber > 0) {
-				int i = Mathf.FloorToInt (Random.Range (0, spawnableArea.Count));
-				//Debug.Log ("Getting position #" + i);
-				//Debug.Log("Coordinates = " + spawnableArea [i]);
-				Vector2 spawnLoc = spawnableArea [i];
-				Instantiate (objectsToSpawn [spawn].spawnObject, new Vector3 (spawnLoc.x, 1, spawnLoc.y), Quaternion.identity);
-				objectsToSpawn [spawn].spawnNumber--;
-				spawnableArea.RemoveAt (i);
-				if (objectsToSpawn [spawn].children != null) {
-					for (int c = 0; c < objectsToSpawn[spawn].children.Length; c++) {
-						Rect r = new Rect (spawnLoc.x - objectsToSpawn[spawn].children[c].spawnWithin, spawnLoc.y - objectsToSpawn[spawn].children[c].spawnWithin, objectsToSpawn[spawn].children[c].spawnWithin*2 + 1, objectsToSpawn[spawn].children[c].spawnWithin*2 + 1);
-						List<Vector2> L = new List<Vector2> ();
-						for (int b = 0; b < spawnableArea.Count; b++) {
-							if (r.Contains (spawnableArea [b])) {
-								L.Add (spawnableArea [b]);
-							}
-						}
-						for (int d = 0; d < objectsToSpawn[spawn].children[c].spawnNumber; d++) {
-							if(L.Count>0){
-								int f = Mathf.FloorToInt(Random.Range(0,L.Count));
-								Vector2 vec = L[f];
-								Instantiate (objectsToSpawn [spawn].children [c].spawnChildObject, new Vector3 (vec.x, 1, vec.y), Quaternion.identity);
-								for (int e = 0; e < spawnableArea.Count; e++) {
-									if(vec == spawnableArea[e]){
-										spawnableArea.RemoveAt(e);
-									}
-								}
-								L.RemoveAt(f);
-							}
-						}
-					}
-				}
-				yield return  null;
-			} else {
-				spawn++;
-				yield return null;
-			}
-		}
-		Debug.Log ("Finished");
-		Time.timeScale = 1;
-		yield return null;
-	}
 }
-[System.Serializable]
-public class Spawn
-{
-	public GameObject spawnObject;
-	[Range(0,1000)]
-	public int spawnNumber;
-	public ChildSpawn[] children;
-}
-[System.Serializable]
-public class ChildSpawn
-{
-	public GameObject spawnChildObject;
-	[Range(0,100)]
-	public int spawnNumber;
-	[Range(0,50)]
-	public float spawnWithin;
-}
+
 [System.Serializable]
 public class Grid
 {
