@@ -317,15 +317,15 @@ public class CaveGeneration : MonoBehaviour {
 	{
 		bool s = false;
 		foreach (Node n in nodes) {
-			if (s == false) {
-				spawner.SetPlayerSpawn (n.point);
-				s = true;
-			}
 			if (GetPoint (n.point).IsFilled() == false) {
 				for (int i = 0; i < n.room.Count; i++) {
 					spawner.AddSpawnPoint (n.room [i]);
 				}
 				spawner.AddSpawnPoint (n.point);
+				if (s == false) {
+					spawner.SetPlayerSpawn (n.point);
+					s = true;
+				}
 			}
 		}
 		spawner.StartSpawn ();
