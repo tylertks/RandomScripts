@@ -39,5 +39,5 @@
   'ctrl-k alt-left': 'pane:split-left-and-move-active-item'
   'ctrl-k shift-left': 'window:move-active-item-to-pane-on-left'
   'ctrl-k shift-right': 'window:move-active-item-to-pane-on-right'
-  'ctrl-k shift-up': 'window:move-active-item-to-pane-on-up'
-  'ctrl-k shift-down': 'window:move-active-item-to-pane-on-down'
+  'ctrl-k shift-up': 'window:move-active-item-to-pane-above'
+  'ctrl-k shift-down': 'window:move-active-item-to-pane-below'
